@@ -4,7 +4,7 @@ from bot import CMD_INDEX
 class _BotCommands:
     def __init__(self):
         self.StartCommand = f'start{CMD_INDEX}'
-        self.MirrorCommand = (f'dl{CMD_INDEX}', f'm{CMD_INDEX}')
+        self.MirrorCommand = (f'download{CMD_INDEX}', f'dl{CMD_INDEX}')
         self.UnzipMirrorCommand = (f'unzipmirror{CMD_INDEX}', f'uzm{CMD_INDEX}')
         self.ZipMirrorCommand = (f'zipmirror{CMD_INDEX}', f'zm{CMD_INDEX}')
         self.QbMirrorCommand = (f'qbmirror{CMD_INDEX}', f'qm{CMD_INDEX}')
