@@ -3,8 +3,8 @@ from bot import CMD_PERFIX
 
 class _BotCommands:
     def __init__(self):
-        self.StartCommand = f'start{CMD_PERFIX}'
-        self.MirrorCommand = (f'dl{CMD_PERFIX}', f'm{CMD_PERFIX}')
+        self.StartCommand = f'start'
+        self.MirrorCommand = (f'download{CMD_PERFIX}', f'dl{CMD_PERFIX}')
         self.UnzipMirrorCommand = (f'unzipmirror{CMD_PERFIX}', f'uzm{CMD_PERFIX}')
         self.ZipMirrorCommand = (f'zipmirror{CMD_PERFIX}', f'zm{CMD_PERFIX}')
         self.QbMirrorCommand = (f'qbmirror{CMD_PERFIX}', f'qm{CMD_PERFIX}')
