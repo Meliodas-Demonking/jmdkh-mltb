@@ -2,7 +2,7 @@ from os import path as ospath, makedirs
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
-from bot import DB_URI, user_data, rss_dict, botname, LOGGER, bot_id, config_dict, aria2_options, qbit_options
+from bot import DATABASE_URL, user_data, rss_dict, botname, LOGGER, bot_id, config_dict, aria2_options, qbit_options
 
 class DbManger:
     def __init__(self):
@@ -13,7 +13,7 @@ class DbManger:
 
     def __connect(self):
         try:
-            self.__conn = MongoClient(DB_URI)
+            self.__conn = MongoClient(DATABASE_URL)
             self.__db = self.__conn.mltb
         except PyMongoError as e:
             LOGGER.error(f"Error in DB connection: {e}")
@@ -22,9 +22,8 @@ class DbManger:
     def db_load(self):
         if self.__err:
             return
-        # Save bot settings if not exists
-        if self.__db.settings.config.find_one({'_id': bot_id}) is None:
-            self.__db.settings.config.update_one({'_id': bot_id}, {'$set': config_dict}, upsert=True)
+        # Save bot settings
+        self.__db.settings.config.update_one({'_id': bot_id}, {'$set': config_dict}, upsert=True)
         # Save Aria2c options
         if self.__db.settings.aria2c.find_one({'_id': bot_id}) is None:
             self.__db.settings.aria2c.update_one({'_id': bot_id}, {'$set': aria2_options}, upsert=True)
@@ -32,8 +31,8 @@ class DbManger:
         if self.__db.settings.qbittorrent.find_one({'_id': bot_id}) is None:
             self.__db.settings.qbittorrent.update_one({'_id': bot_id}, {'$set': qbit_options}, upsert=True)
         # User Data
-        if self.__db.users.find_one():
-            rows = self.__db.users.find({})  # return a dict ==> {_id, is_sudo, is_auth, as_media, as_doc, thumb}
+        if self.__db.users[bot_id].find_one():
+            rows = self.__db.users[bot_id].find({})  # return a dict ==> {_id, is_sudo, is_auth, as_media, as_doc, thumb}
             for row in rows:
                 uid = row['_id']
                 del row['_id']
@@ -77,8 +76,11 @@ class DbManger:
     def update_private_file(self, path):
         if self.__err:
             return
-        with open(path, 'rb+') as pf:
-            pf_bin = pf.read()
+        if ospath.exists(path):
+            with open(path, 'rb+') as pf:
+                pf_bin = pf.read()
+        else:
+            pf_bin = ''
         path = path.replace('.', '__')
         self.__db.settings.files.update_one({'_id': bot_id}, {'$set': {path: pf_bin}}, upsert=True)
         self.__conn.close()
@@ -89,7 +91,7 @@ class DbManger:
         data = user_data[user_id]
         if data.get('thumb'):
             del data['thumb']
-        self.__db.users.update_one({'_id': user_id}, {'$set': data}, upsert=True)
+        self.__db.users[bot_id].update_one({'_id': user_id}, {'$set': data}, upsert=True)
         self.__conn.close()
 
     def update_thumb(self, user_id, path=None):
@@ -100,7 +102,7 @@ class DbManger:
                 image_bin = image.read()
         else:
             image_bin = ''
-        self.__db.users.update_one({'_id': user_id}, {'$set': {'thumb': image_bin}}, upsert=True)
+        self.__db.users[bot_id].update_one({'_id': user_id}, {'$set': {'thumb': image_bin}}, upsert=True)
         self.__conn.close()
 
     def rss_update(self, title):
@@ -143,7 +145,6 @@ class DbManger:
                     usr_dict = {row['tag']: [row['_id']]}
                     notifier_dict[row['cid']] = usr_dict
         self.__db.tasks[bot_id].drop()
-        self.clear_download_links()
         self.__conn.close()
         return notifier_dict # return a dict ==> {cid: {tag: [_id, _id, ...]}}
 
@@ -167,10 +168,12 @@ class DbManger:
         self.__conn.close()
         return exist
 
-    def clear_download_links(self):
+    def clear_download_links(self, bot_name=None):
         if self.__err:
             return
-        self.__db.download_links.delete_many({'botname': botname})
+        if not bot_name:
+            bot_name = botname
+        self.__db.download_links.delete_many({'botname': bot_name})
         self.__conn.close()
 
     def remove_download(self, url: str):
@@ -179,5 +182,5 @@ class DbManger:
         self.__db.download_links.delete_one({'_id': url})
         self.__conn.close()
 
-if DB_URI:
+if DATABASE_URL:
     DbManger().db_load()
